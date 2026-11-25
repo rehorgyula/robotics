@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#4827AF">
+  <title>Robotlabor | Építs. Mozgass. Számolj.</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./robotlabor/style.css">
+  <script type="importmap">{"imports":{"three":"./robotlabor/vendor/three.mjs"}}</script>
+  <script src="./robotlabor/vendor/lucide.min.js" defer></script>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon"><i data-lucide="orbit"></i></span><div><h1>Robotlabor<span> / </span><small>interaktív műhely</small></h1><p>ROBOTIKA · TECHNIKUSI ALAPOK</p></div></div>
+    <div class="header-actions"><button id="robot-info" class="button subtle" title="A kiválasztott robot ismertetője" aria-label="A kiválasztott robot ismertetője"><i data-lucide="info"></i><span>Robot ismertető</span></button><button id="help" class="button subtle" title="Modell és képletek" aria-label="Modell és képletek"><i data-lucide="book-open"></i><span>Modell és képletek</span></button><button id="reset-all" class="button subtle"><i data-lucide="rotate-ccw"></i><span>Új munkamenet</span></button></div>
+  </header>
+  <main class="laboratory">
+    <aside class="tools">
+      <nav class="tabs" aria-label="Műhelypanelek"><button class="active" data-tab="control" aria-pressed="true"><i data-lucide="sliders-horizontal"></i>Vezérlés</button><button data-tab="builder" aria-pressed="false"><i data-lucide="blocks"></i>Építés</button><button data-tab="math" aria-pressed="false"><i data-lucide="calculator"></i>Számítás</button></nav>
+      <section id="control-panel" class="tool-content">
+        <div class="section-head"><h2>Robot</h2><span class="step-label">01 / MOZGATÁS</span></div>
+        <div class="robot-picker"><button id="robot-picker-toggle" class="robot-picker-toggle" aria-expanded="false" aria-controls="robot-picker-panel"><span class="robot-thumb robot-thumb-current" data-art="articulated"><i></i><i></i><i></i></span><span><small>KIVÁLASZTOTT ROBOT</small><strong id="selected-robot-name">Artikulált ipari kar</strong></span><i class="picker-chevron" data-lucide="chevron-down"></i></button><div id="robot-picker-panel" class="robot-picker-panel" hidden><div class="robot-option-grid" role="listbox" aria-label="Robot kiválasztása"><button class="robot-option" data-model="articulated" role="option" aria-selected="true"><span class="robot-thumb" data-art="articulated"><i></i><i></i><i></i></span><strong>Artikulált kar</strong></button><button class="robot-option" data-model="scara" role="option" aria-selected="false"><span class="robot-thumb" data-art="scara"><i></i><i></i><i></i></span><strong>SCARA</strong></button><button class="robot-option" data-model="cartesian" role="option" aria-selected="false"><span class="robot-thumb" data-art="cartesian"><i></i><i></i><i></i></span><strong>Kartéziánus</strong></button><button class="robot-option" data-model="cylindrical" role="option" aria-selected="false"><span class="robot-thumb" data-art="cylindrical"><i></i><i></i><i></i></span><strong>Hengerkoordinátás</strong></button><button class="robot-option" data-model="polar" role="option" aria-selected="false"><span class="robot-thumb" data-art="polar"><i></i><i></i><i></i></span><strong>Poláris</strong></button><button class="robot-option" data-model="lift" role="option" aria-selected="false"><span class="robot-thumb" data-art="lift"><i></i><i></i><i></i></span><strong>Lineáris emelő</strong></button><button class="robot-option" data-model="cobot" role="option" aria-selected="false"><span class="robot-thumb" data-art="cobot"><i></i><i></i><i></i></span><strong>Redundáns kar</strong></button><button class="robot-option" data-model="delta" role="option" aria-selected="false"><span class="robot-thumb" data-art="delta"><i></i><i></i><i></i></span><strong>Delta</strong></button></div></div><select id="preset" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="articulated">Artikulált ipari kar</option><option value="scara">SCARA</option><option value="cartesian">Kartéziánus robot</option><option value="cylindrical">Hengerkoordinátás robot</option><option value="polar">Poláris robot</option><option value="lift">Lineáris emelő</option><option value="cobot">Redundáns robotkar</option><option value="delta">Delta robot</option><option value="custom" disabled>Saját robot</option></select></div>
+        <div class="inline-fields"><label class="field">Végponti teher [kg]<input id="payload" type="number" min="0" max="100" step="0.1" value="1"></label><label class="field">Bemutató ciklus [s]<input id="demo-period" type="number" min="2" max="30" step="1" value="8"></label></div>
+        <div class="button-row"><button id="demo" class="button primary"><i data-lucide="play"></i><span>Mozgásszimuláció</span></button><button id="home-joints" class="icon-button" title="Robot kiinduló helyzete" aria-label="Robot kiinduló helyzete"><i data-lucide="undo-2"></i></button></div>
+        <div class="section-head divided"><h2>Munkacella</h2><span id="work-status">Várakozik az A konvejoron</span></div>
+        <div id="transfer-task" class="transfer-task"><div class="transfer-lane"><span>A</span><i data-lucide="move-right"></i><span>B</span></div><p id="transfer-status" role="status">Vedd fel a darabot az A konvejorról, majd tedd le a B konvejorra.</p><label class="field">Munkadarab tömege [kg]<input id="work-mass" type="number" min="0.1" max="50" value="0.5" step="0.1"></label></div>
+        <p id="collision-status" class="collision-status" role="status">Ütközésvédelem aktív</p>
+      </section>
+      <section id="builder-panel" class="tool-content" hidden>
+        <div class="section-head"><h2>Robotépítő</h2><span class="step-label">02 / GEOMETRIA</span></div>
+        <div class="builder-actions"><button id="add-r" class="button outline"><i data-lucide="rotate-3d"></i>Forgó +</button><button id="add-p" class="button outline"><i data-lucide="move-horizontal"></i>Lineáris +</button></div>
+        <div class="section-head divided"><h3>Csuklólánc</h3><span id="builder-count"></span></div>
+        <div id="builder-list"></div>
+      </section>
+      <section id="math-panel" class="tool-content" hidden>
+        <div class="section-head"><h2>Élő számítások</h2><span class="step-label">03 / ELLENŐRZÉS</span></div>
+        <label class="field">Vizsgált csukló<select id="math-joint"></select></label>
+        <div id="math-content"></div>
+        <div class="model-note"><i data-lucide="info"></i><p>Soros, merev lánc. Közelítő talaj-, talapzat- és cellafalvédelem; teljes önütközés-vizsgálat nélkül. A dinamika független tömegpontmodell, csatolás és súrlódás nélkül.</p></div>
+      </section>
+    </aside>
+    <section class="scene-column" aria-label="Robot és pályaprogram">
+      <div class="viewport" id="viewport">
+        <div class="view-title"><span class="overline">ÉLŐ 3D MUNKATÉR</span><h2 id="robot-title">Artikulált ipari kar</h2><div class="view-chips"><span id="chain">Soros</span></div></div>
+        <div class="camera-tools"><button id="camera-home" class="icon-button" title="Térbeli alapnézet" aria-label="Térbeli alapnézet"><i data-lucide="scan"></i></button><button id="camera-top" class="icon-button" title="Felülnézet" aria-label="Felülnézet"><i data-lucide="panel-top"></i></button><button id="camera-front" class="icon-button" title="Elölnézet" aria-label="Elölnézet"><i data-lucide="panel-left"></i></button><button id="fullscreen" class="icon-button" title="Teljes képernyő" aria-label="Teljes képernyő"><i data-lucide="maximize"></i></button></div>
+        <div id="joint-labels"></div>
+        <div id="conveyor-label-a" class="conveyor-label">A · FELVÉTEL</div><div id="conveyor-label-b" class="conveyor-label">B · LERAKÁS</div>
+        <aside id="joint-teaching-tooltip" class="joint-teaching-tooltip" role="tooltip" hidden></aside>
+        <div id="scene-loading" class="scene-loading"><strong>A robotműhely előkészítése…</strong><p id="loading-detail">3D-megjelenítő indítása</p></div>
+        <section id="joint-popover" class="joint-popover" aria-label="Kiválasztott csukló" hidden><div class="section-head"><h3 id="popover-title"></h3><button id="close-popover" class="icon-button" title="Bezárás" aria-label="Csuklóvezérlő bezárása"><i data-lucide="x"></i></button></div><div class="popover-reading"><output id="popover-value" for="popover-slider"></output><span id="popover-effort"></span></div><input id="popover-slider" type="range" step="0.1" aria-label="Kiválasztott csukló koordinátája"><div class="range-labels"><span id="popover-min"></span><span id="popover-max"></span></div></section>
+        <div id="gripper-toolbar" class="gripper-toolbar" aria-label="Megfogó vezérlése"><button id="grip" class="button primary"><i data-lucide="hand"></i>Megfogás</button><button id="release" class="button outline" disabled><i data-lucide="hand-metal"></i>Elengedés</button></div>
+        <div class="view-options"><label><input id="show-workspace" type="checkbox">Munkatér</label><label><input id="show-axes" type="checkbox">Csuklótengelyek</label><label><input id="show-labels" type="checkbox" checked>Jelölések</label><label><input id="show-path" type="checkbox" checked>Pályavonal</label><label id="cell-toggle-wrap"><input id="cell-enabled" type="checkbox">Cella</label><label id="work-toggle-wrap"><input id="work-enabled" type="checkbox">Átrakó feladat</label><label><input id="game-enabled" type="checkbox">Játék mód</label><span id="workspace-status"></span></div>
+        <section id="game-hud" class="game-hud" aria-label="Robotépítő játék session" hidden>
+          <header><span>ROBOTÉPÍTŐ JÁTÉK</span><button id="game-reset" class="icon-button" title="Új játék session" aria-label="Új játék session"><i data-lucide="rotate-ccw"></i></button></header>
+          <div class="game-level"><strong id="game-level">01</strong><span>/ 30</span><span id="game-difficulty">Alap</span></div>
+          <p id="game-objective">Építs robotot, és nyomd meg a piros gombot.</p>
+          <div class="game-readings"><span>Idő <strong id="game-time">0,0 s</strong></span><span>DOF <strong id="game-dof">6</strong></span><span>Pont <strong id="game-score">0</strong></span></div>
+          <div id="game-rating" class="game-rating" aria-label="1 / 3 csillag">★★☆</div>
+          <p id="game-reward" class="game-reward">Két egymást követő 3 csillagért +15 mp pontozási bónusz jár.</p>
+          <p id="game-feedback" role="status">A játék külön sessionben fut.</p>
+          <div id="game-results" class="game-results"></div>
+          <button id="game-next" class="button primary" disabled><i data-lucide="arrow-right"></i><span>Következő szint</span></button>
+        </section>
+        <div id="game-confetti" class="game-confetti" aria-hidden="true"></div>
+        <div class="view-bottom"><span class="axis-key"><b>X</b><b>Y</b><b>Z ↑</b><span>méter</span></span></div>
+      </div>
+      <section class="learning-lab" aria-label="Robotikai magyarázatok">
+        <details><summary id="joint-lesson-heading">Csukló közelről</summary><div id="joint-lesson" class="lesson-content"></div></details>
+      </section>
+      <section class="trajectory" aria-label="Útvonaltervezés">
+        <div class="section-head"><div><span class="overline">PONTBÓL MOZGÁS</span><h2>Pályaprogram</h2></div><span class="point-counter" id="point-count">0 pont</span></div>
+        <div class="record-row"><label class="field">Pont neve<input id="point-name" maxlength="32" placeholder="P01"></label><label class="field duration-field">Szakasz [s]<input id="point-duration" type="number" min="0.5" max="60" step="0.5" value="2"></label><button id="record" class="button primary"><i data-lucide="map-pin-plus"></i>Pont rögzítése</button></div>
+        <div id="waypoint-list" class="waypoint-list"><p class="empty-state">Nincs rögzített pont.</p></div>
+        <div class="playback"><div class="playback-buttons"><button id="play-path" class="icon-button dark" title="Pálya lejátszása vagy szüneteltetése" aria-label="Pálya lejátszása" disabled><i data-lucide="play"></i></button><button id="stop-path" class="icon-button" title="Leállítás és vissza az első pontra" aria-label="Pálya leállítása" disabled><i data-lucide="square"></i></button></div><input id="timeline" aria-label="Pálya időpozíciója" type="range" min="0" max="1" step="0.01" value="0" disabled><output id="path-time">0,0 / 0,0 s</output><label class="loop-toggle"><input id="loop-path" type="checkbox">Végtelenítés</label><button id="clear-path" class="icon-button danger" title="Összes pályapont törlése" aria-label="Pályapontok törlése" disabled><i data-lucide="trash-2"></i></button></div>
+        <div class="trajectory-meta"><span>Csuklótér · simított, ötödfokú átmenet</span><span>Tárolás: csak ebben a munkamenetben</span></div>
+      </section>
+    </section>
+    <aside class="inspector">
+      <section><div class="section-head"><h2>Robotállapot</h2><i data-lucide="activity"></i></div><span class="overline">SZABADSÁGFOK</span><div class="dof-reading"><strong id="dof-number">6</strong><span>független<br>csuklókoordináta</span></div><div class="dof-split"><span><b class="dot rotary"></b><strong id="r-count">6</strong> rotációs</span><span><b class="dot linear"></b><strong id="p-count">0</strong> transzlációs</span></div><p id="dof-note" class="muted small"></p></section>
+      <section><div class="section-head"><h3>Szerszámközéppont</h3><span class="unit">TCP</span></div><div class="coordinates" id="tcp"></div><div class="orientation" id="orientation"></div></section>
+      <section><details class="inspector-detail"><summary>Hajtásterhelések <span class="unit">N·m / N</span></summary><div class="inspector-detail-content"><div id="load-list"></div><p class="load-explanation">A százalék a hajtáshatár kihasználtsága. A határ oktatási beállítás, nem gyártói adat.</p><div id="overload" class="overload" hidden><i data-lucide="triangle-alert"></i><span>A becsült terhelés meghaladja a beállított hajtáshatárt.</span></div></div></details></section>
+      <section><details class="inspector-detail"><summary>Energia és mozgás</summary><div class="inspector-detail-content"><dl class="measurements"><div><dt>Mozgó össztömeg</dt><dd id="total-mass"></dd></div><div><dt>Helyzeti energia</dt><dd id="potential"></dd></div><div><dt>Mozgási energia*</dt><dd id="kinetic"></dd></div><div><dt>TCP-sebesség</dt><dd id="tcp-speed"></dd></div></dl><p class="small muted">*Független csuklók tömegpont-becslése.</p></div></details></section>
+    </aside>
+  </main>
+  <footer class="footer"><span><b class="dot rotary"></b>Robotlabor / Oktatási szimuláció</span><span>Idealizált robotmodellek · Nem gépbiztonsági méretezés</span></footer>
+  <dialog id="help-dialog">
+    <div class="section-head"><h2>Modell és képletek</h2><button id="close-help" class="icon-button" title="Bezárás" aria-label="Súgó bezárása"><i data-lucide="x"></i></button></div>
+    <h3>Kinematika</h3><p>Minden csukló a megelőző tag helyi koordinátarendszerében mozog. R: forgás, P: eltolás. A merev tag tömege a geometriai középpontban koncentrált.</p><div class="formula">T = T₀ · A₁ · A₂ · … · Aₙ</div>
+    <p>A robotkarok alapmagassága 180 mm, a SCARA oszlopa 650 mm magas. A portál vezetősíkja 1100 mm; három merőleges szánja X: 0–800, Y: 0–600, Z: −1000…−150 mm tartományban mozog. Világkoordinátában a portál TCP-tartománya X: −400…400, Y: −300…300, Z: 100…950 mm. A lefelé irányuló szerszám orientációja állandó.</p>
+    <p>Z felfelé mutat. Az orientáció ZYX Euler-felbontás; szinguláris helyzetben ez nem egyértelmű. Egy nyitott soros láncban DOF = R + P, a végpont pózának legfeljebb 6 független összetevője lehet.</p>
+    <h3>Munkatér és robotcella</h3><p>A pontfelhő legfeljebb 2400 olyan TCP-helyzetet tartalmaz, amely megfelel a mozgáshatároknak és a közelítő ütközésvizsgálatnak. A Cella kapcsoló Bosch-profil vázat és plexifalakat jelenít meg; bekapcsolva a falak a robot mozgását is határolják. A konvejorok és a gépasztal a cella belsejében maradnak.</p>
+    <p>A mozgatás és a lejátszás kis csuklólépésekben ellenőrzött; ütközésnél a robot megáll. A modell szakaszokkal és bővített dobozokkal közelít. Nincs teljes önütközés-, cellaváz-, dinamikai ütközés- vagy összefüggő elérhetőségi vizsgálat. A pontfelhő nem bizonyítja, hogy minden pont egyetlen szabad útvonalon elérhető.</p>
+    <h3>Munkadarab és konvejorok</h3><p>A 80 mm-es narancsszínű munkadarab az A konvejoron indul. Az átrakófeladat jelenleg az Artikulált robothoz érhető el; a két magasított szalag a gépasztalra épül, és belóg a cellába. A TCP-t 90 mm-en belülre vezetve a Megfogás gomb felveszi a darabot, a B konvejor fölötti elengedés sikeres átrakásnak számít. A munkatér vezérlősorában lévő feladatkapcsoló a darabot és mindkét konvejort együtt kapcsolja ki vagy be.</p>
+    <p>Ez idealizált megfogás, kontakt- és súrlódásszimuláció nélkül. A konvejorok a bemutatóban állnak, nem szállítják automatikusan a munkadarabot.</p>
+    <h3>Statika és közelítő dinamika</h3><div class="formula">F = m · g &nbsp; M = F · k<br>τg = Σ (r × m · g↑) · e<br>FP = Σ m · g↑ · e<br>τ ≈ τg + Ieff · α &nbsp; F ≈ Fg + meff · a</div>
+    <p>g = 9,81 m/s². A kijelzett előjeles hajtóerő vagy nyomaték tartalmazza az összes későbbi tag és a végponti teher hatását. Ieff = Σ m · r⊥². Nincs saját középponti tagtehetetlenség, dinamikai csatolás, Coriolis-tag, súrlódás vagy hajtóműveszteség. A rögzített váz tömege nem számít a mozgó tömegbe.</p>
+    <h3>Pályaprogram</h3><p>A pontok között ötödfokú csuklótérbeli átmenet fut; minden pontban nulla sebességgel és gyorsulással. A TCP útja általában nem egyenes. A pont szakaszideje a következő pontig érvényes. A szem ikon a pontra áll, a frissítés ikon felülírja azt. A megfogás és az elengedés kézi művelet, nem rögzül a pályapontba.</p>
+    <p>Minden állapot csak memóriában él, oldalfrissítéskor törlődik. A geometria megváltoztatása megerősítés után törli a pályát. Az oktatási modellek és hajtáshatárok nem gyártói specifikációk, és nem használhatók gépbiztonsági méretezésre.</p>
+  </dialog>
+  <dialog id="robot-dialog">
+    <div class="section-head"><h2 id="robot-dialog-title">Robot ismertető</h2><button id="close-robot" class="icon-button" title="Bezárás" aria-label="Robotismertető bezárása"><i data-lucide="x"></i></button></div>
+    <div id="robot-lesson" class="lesson-content"></div>
+  </dialog>
+  <dialog id="confirm-dialog"><h2 id="confirm-title">Megerősítés</h2><p id="confirm-message"></p><div class="button-row"><button id="confirm-cancel" class="button outline">Mégse</button><button id="confirm-ok" class="button primary">Folytatás</button></div></dialog>
+  <div id="toast" role="status" hidden></div>
+  <noscript>A Robotlabor használatához JavaScript szükséges.</noscript>
+  <script type="module" src="./robotlabor/app.mjs"></script>
+</body>
+</html>
